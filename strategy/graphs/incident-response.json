@@ -1,0 +1,74 @@
+{
+  "slug": "incident-response",
+  "title": "Incident Response Team",
+  "kind": "team",
+  "summary": "Triage, parallel diagnosis (reliability + security), a verified fix through a Dev↔QA loop, stakeholder comms alongside, and a blameless post-mortem.",
+  "inputs": {
+    "incident": { "description": "Symptoms, alerts, logs, affected systems", "required": true }
+  },
+  "nodes": [
+    {
+      "id": "triage",
+      "type": "agent",
+      "agent": "engineering-incident-response-commander",
+      "task": "Triage this incident: {{input.incident}}\n\nSeverity (SEV1-4) with justification, blast radius, immediate mitigation to apply now, and the hypotheses to investigate."
+    },
+    {
+      "id": "reliability",
+      "type": "agent",
+      "agent": "engineering-sre",
+      "after": ["triage"],
+      "task": "Investigate the reliability hypotheses from triage. Identify the most likely root cause with evidence (metrics, logs, recent changes) and propose the fix."
+    },
+    {
+      "id": "security",
+      "type": "gate",
+      "agent": "security-incident-responder",
+      "after": ["triage"],
+      "verdicts": ["CLEAR", "COMPROMISE", "UNKNOWN"],
+      "task": "Determine whether this incident has a security dimension (intrusion, data exposure, abuse). Assess indicators and state what evidence supports your conclusion.",
+      "verdict_guide": "CLEAR = no security involvement. COMPROMISE = evidence of a security incident. UNKNOWN = cannot rule it out yet."
+    },
+    {
+      "id": "contain",
+      "type": "agent",
+      "agent": "security-senior-secops",
+      "after": ["security"],
+      "when": { "node": "security", "verdict": ["COMPROMISE", "UNKNOWN"] },
+      "task": "Run containment for the suspected security incident: isolate affected assets, rotate exposed credentials, preserve evidence, and list notification obligations."
+    },
+    {
+      "id": "fix",
+      "type": "graph",
+      "graph": "dev-qa-loop",
+      "after": ["reliability", "security"],
+      "inputs": {
+        "task": "Implement the permanent fix for the incident root cause identified by the SRE investigation.",
+        "acceptance": "Root cause eliminated, regression test added, no new alerts under normal load, rollback plan documented.",
+        "context": "Incident: {{input.incident}}\n\nTriage:\n{{nodes.triage.output}}\n\nRoot-cause analysis:\n{{nodes.reliability.output}}",
+        "developer": "engineering-senior-developer",
+        "qa": "testing-api-tester"
+      }
+    },
+    {
+      "id": "comms",
+      "type": "agent",
+      "agent": "support-support-responder",
+      "after": ["triage"],
+      "task": "Draft the customer-facing status page update and an internal stakeholder update for this incident. Factual, no speculation, next update time as a placeholder."
+    },
+    {
+      "id": "postmortem",
+      "type": "agent",
+      "agent": "engineering-incident-response-commander",
+      "after": ["fix", "contain", "comms"],
+      "context": ["triage", "fix", "contain"],
+      "task": "Write the blameless post-mortem: timeline, root cause, contributing factors, what went well, and action items (owner role, priority). Fix verdict: {{nodes.fix.verdict}}. Security verdict: {{nodes.security.verdict}}."
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.postmortem.output}}",
+    "verdict": "{{nodes.fix.verdict}}",
+    "comms": "{{nodes.comms.output}}"
+  }
+}

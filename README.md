@@ -614,6 +614,22 @@ See the **[Nexus Spatial Discovery Exercise](examples/nexus-spatial-discovery.md
 
 ---
 
+## 🕸️ Automated Teams (Team Graphs)
+
+The scenarios above are teams you coordinate by hand. **Team graphs** run them for you. A team graph is a small JSON program whose steps are agents. Agents run in parallel wherever they don't depend on each other. A gate agent's verdict (`PASS` / `FAIL`, `READY` / `NEEDS_WORK`, and so on) picks the branch. Dev↔QA and review loops retry with feedback up to a fixed limit. Teams nest inside other teams, and one run can fan out over a whole task list.
+
+```bash
+python3 scripts/agency_graph.py list                          # 6 teams + 4 reusable building blocks
+python3 scripts/agency_graph.py show startup-mvp              # structure, roster, worst-case agent calls
+python3 scripts/agency_graph.py run feature-delivery -i spec="..." --mock-verdict qa=FAIL,PASS   # dry run
+python3 scripts/agency_graph.py run feature-delivery --input-file spec=spec.md \
+  --backend claude-code --workdir ~/code/myapp --max-calls 40                            # real run
+```
+
+For example, `startup-mvp` runs research in parallel, then a product brief, then the whole `feature-delivery` team as a sub-team (architecture → PM task plan → one Dev↔QA loop per task → Reality Checker gate). If the gate says READY, a launch squad runs; otherwise a recovery plan is written. Every loop is bounded, every run is checkpointed and can be resumed, and CI validates every graph against the agent roster. Full guide: **[strategy/graphs/README.md](strategy/graphs/README.md)**.
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:

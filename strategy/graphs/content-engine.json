@@ -1,0 +1,47 @@
+{
+  "slug": "content-engine",
+  "title": "Content Engine Team",
+  "kind": "team",
+  "summary": "One campaign strategy, fanned out in parallel to every channel, each piece run through an author↔brand-review loop, then assembled into a distribution calendar.",
+  "inputs": {
+    "campaign": { "description": "Campaign goal, audience, product, key message", "required": true },
+    "channels": { "description": "JSON list of channels", "default": ["blog", "linkedin", "x", "email"] }
+  },
+  "nodes": [
+    {
+      "id": "strategy",
+      "type": "agent",
+      "agent": "marketing-growth-hacker",
+      "task": "Write the campaign strategy for: {{input.campaign}}\n\nCore narrative, the one message every channel must carry, audience segments, and the success metric per channel ({{input.channels}})."
+    },
+    {
+      "id": "pieces",
+      "type": "map",
+      "after": ["strategy"],
+      "items": "input.channels",
+      "max_items": 8,
+      "max_parallel": 4,
+      "body": {
+        "graph": "review-loop",
+        "inputs": {
+          "brief": "Create the {{item}} content for this campaign, native to {{item}} (format, length, tone, CTA).\n\nCampaign strategy:\n{{nodes.strategy.output}}",
+          "standard": "On-message with the campaign strategy, on-brand, native to the channel, clear CTA.",
+          "author": "marketing-content-creator",
+          "reviewer": "design-brand-guardian"
+        }
+      }
+    },
+    {
+      "id": "calendar",
+      "type": "agent",
+      "agent": "marketing-social-media-strategist",
+      "after": ["pieces"],
+      "task": "Assemble the approved pieces into a two-week distribution calendar: order, cadence, cross-promotion between channels, and what to measure after each post."
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.calendar.output}}",
+    "verdict": "{{nodes.pieces.verdict}}",
+    "pieces": "{{nodes.pieces.output}}"
+  }
+}

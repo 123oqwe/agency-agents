@@ -1,5 +1,5 @@
 {
-  "_note": "Machine-readable rosters for the NEXUS scenario runbooks in strategy/runbooks/. Consumed by the Agency Agents app to turn a runbook into a one-click team deploy: it reads the roster, maps each slug to a catalog agent, and installs the set. `agents[]` entries are SLUGS — the agent .md filename stem (the corpus id), e.g. engineering/engineering-frontend-developer.md -> \"engineering-frontend-developer\"; specialized/agents-orchestrator.md -> \"agents-orchestrator\" (note: the stem is NOT always division-prefixed, and display names are prefixed/drift — so rosters reference slugs, which are rename-proof and testable). `mode` is the NEXUS activation mode (Full | Sprint | Micro) that sizes the team; `roster` groups preserve the runbook's phase structure via `activation`. `doc` is the prose runbook the app renders. Keep this in sync with the markdown in strategy/runbooks/; every slug must resolve to a real agent file (scripts/check-runbooks.sh can guard this, mirroring check-divisions.sh). strategy/ holds orchestration doctrine, not installable agents — it is NOT a division (see divisions.json).",
+  "_note": "Machine-readable rosters for the NEXUS scenario runbooks in strategy/runbooks/. Consumed by the Agency Agents app to turn a runbook into a one-click team deploy: it reads the roster, maps each slug to a catalog agent, and installs the set. `agents[]` entries are SLUGS — the agent .md filename stem (the corpus id), e.g. engineering/engineering-frontend-developer.md -> \"engineering-frontend-developer\"; specialized/agents-orchestrator.md -> \"agents-orchestrator\" (note: the stem is NOT always division-prefixed, and display names are prefixed/drift — so rosters reference slugs, which are rename-proof and testable). `mode` is the NEXUS activation mode (Full | Sprint | Micro) that sizes the team; `roster` groups preserve the runbook's phase structure via `activation`. `doc` is the prose runbook the app renders. Keep this in sync with the markdown in strategy/runbooks/; every slug must resolve to a real agent file (scripts/check-runbooks.sh can guard this, mirroring check-divisions.sh). strategy/ holds orchestration doctrine, not installable agents — it is NOT a division (see divisions.json). `graph` (optional) names the executable team graph in strategy/graphs/ that automates this runbook (run it with scripts/agency_graph.py); check-runbooks.sh verifies it exists.",
   "runbooks": [
     {
       "slug": "startup-mvp",
@@ -8,6 +8,7 @@
       "duration": "4-6 weeks",
       "summary": "Idea to live product with real users, fast — without skipping QA.",
       "doc": "strategy/runbooks/scenario-startup-mvp.md",
+      "graph": "startup-mvp",
       "roster": [
         {
           "group": "Core Team",
@@ -54,6 +55,7 @@
       "duration": "6-12 weeks",
       "summary": "Ship a major feature into an existing enterprise product with non-negotiable compliance, security, and quality gates, and multi-stakeholder alignment.",
       "doc": "strategy/runbooks/scenario-enterprise-feature.md",
+      "graph": "feature-delivery",
       "roster": [
         {
           "group": "Core Team",
@@ -104,6 +106,7 @@
       "duration": "2-4 weeks",
       "summary": "Launch a coordinated, brand-consistent campaign across channels that drives measurable acquisition and engagement.",
       "doc": "strategy/runbooks/scenario-marketing-campaign.md",
+      "graph": "content-engine",
       "roster": [
         {
           "group": "Campaign Core",
@@ -146,6 +149,7 @@
       "duration": "Minutes to hours",
       "summary": "Detection through post-mortem for a production incident — fast response without cutting corners.",
       "doc": "strategy/runbooks/scenario-incident-response.md",
+      "graph": "incident-response",
       "roster": [
         {
           "group": "P0 Critical Response",

@@ -12,6 +12,7 @@
 #   2. any roster `agents[]` slug does not match an agent .md filename stem
 #   3. any `doc` path does not exist
 #   4. a runbook `slug` is duplicated
+#   5. an optional `graph` does not name a file in strategy/graphs/
 #
 # Slugs are the agent .md filename stem (the corpus id), e.g.
 # engineering/engineering-frontend-developer.md -> "engineering-frontend-developer".
@@ -64,6 +65,9 @@ for rb in runbooks:
     doc = rb.get("doc")
     if doc and not os.path.isfile(doc):
         errors.append(f"runbook '{rid}': doc path does not exist: {doc}")
+    graph = rb.get("graph")
+    if graph and not os.path.isfile(f"strategy/graphs/{graph}.json"):
+        errors.append(f"runbook '{rid}': graph does not exist: strategy/graphs/{graph}.json")
     for g in rb.get("roster", []):
         for slug in g.get("agents", []):
             total_refs += 1

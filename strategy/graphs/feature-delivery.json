@@ -1,0 +1,63 @@
+{
+  "slug": "feature-delivery",
+  "title": "Feature Delivery Team",
+  "kind": "team",
+  "summary": "Spec in, verified feature out: architecture and a task plan, one Dev↔QA loop per task (each task assigned its own developer/QA pair), a reality-check gate with a fix cycle, docs, and a stakeholder summary.",
+  "inputs": {
+    "spec": { "description": "Feature specification (inline text, or --input-file spec=path)", "required": true },
+    "max_tasks": { "description": "Upper bound on planned tasks", "default": "8" }
+  },
+  "nodes": [
+    {
+      "id": "plan",
+      "type": "graph",
+      "graph": "spec-to-tasks",
+      "inputs": { "spec": "{{input.spec}}", "max_tasks": "{{input.max_tasks}}" }
+    },
+    {
+      "id": "build",
+      "type": "map",
+      "after": ["plan"],
+      "items": "nodes.plan.outputs.tasks",
+      "max_items": 12,
+      "max_parallel": 1,
+      "body": {
+        "graph": "dev-qa-loop",
+        "inputs": {
+          "task": "{{item.id}} — {{item.title}}: {{item.description}}",
+          "acceptance": "{{item.acceptance}}",
+          "context": "Architecture:\n{{nodes.plan.outputs.architecture}}",
+          "developer": "{{item.developer}}",
+          "qa": "{{item.qa}}"
+        }
+      }
+    },
+    {
+      "id": "gate",
+      "type": "graph",
+      "graph": "quality-gate",
+      "after": ["build"],
+      "inputs": { "spec": "{{input.spec}}", "deliverable": "{{nodes.build.output}}" }
+    },
+    {
+      "id": "docs",
+      "type": "agent",
+      "agent": "engineering-technical-writer",
+      "after": ["build"],
+      "task": "Write the developer and user documentation for what was built: setup, usage, API reference for new endpoints, and known limitations. Base it strictly on the build results."
+    },
+    {
+      "id": "summary",
+      "type": "agent",
+      "agent": "support-executive-summary-generator",
+      "after": ["gate", "docs"],
+      "task": "Write a one-page executive summary of this delivery for stakeholders: what shipped, readiness verdict ({{nodes.gate.verdict}}), open risks, and recommended next steps."
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.summary.output}}",
+    "verdict": "{{nodes.gate.verdict}}",
+    "build": "{{nodes.build.output}}",
+    "docs": "{{nodes.docs.output}}"
+  }
+}
