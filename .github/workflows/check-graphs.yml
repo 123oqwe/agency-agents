@@ -1,0 +1,21 @@
+name: Check Team Graphs
+
+# Runs on every PR (no path filter on purpose): renaming or removing an agent
+# must trip this check even when nobody touched strategy/graphs/, since a
+# dangling slug breaks every team graph that calls that agent.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check-graphs:
+    name: team graphs are valid and the engine tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate graphs and test the engine
+        run: |
+          chmod +x scripts/check-graphs.sh
+          ./scripts/check-graphs.sh

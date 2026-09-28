@@ -1,0 +1,58 @@
+{
+  "slug": "growth-experiment-loop",
+  "title": "Growth Experiment Loop",
+  "kind": "team",
+  "summary": "A bounded build-measure-learn loop: hypothesis, experiment design, analysis, and a decision gate that either scales the winner, kills the line of inquiry, or iterates with what was learned (max 4 cycles).",
+  "inputs": {
+    "goal": { "description": "The metric to move and the product context", "required": true },
+    "data": { "description": "Current metrics / experiment results to analyse (updated between scheduled runs)", "default": "No data yet — design experiments and state the data you need." }
+  },
+  "nodes": [
+    {
+      "id": "cycles",
+      "type": "loop",
+      "max_iterations": 4,
+      "until": { "node": "decide", "verdict": "SCALE" },
+      "break": { "node": "decide", "verdict": "KILL" },
+      "feedback": "Previous decision:\n{{nodes.decide.output}}\n\nPrevious analysis:\n{{nodes.analyze.output}}",
+      "body": {
+        "nodes": [
+          {
+            "id": "hypothesis",
+            "type": "agent",
+            "agent": "marketing-growth-hacker",
+            "task": "Goal: {{input.goal}}\n\nPropose the single highest-expected-value growth hypothesis to test next (ICE-scored, one sentence: 'We believe X will move Y by Z because W'). Build on learnings from earlier cycles; never repeat a killed idea."
+          },
+          {
+            "id": "design",
+            "type": "agent",
+            "agent": "project-management-experiment-tracker",
+            "after": ["hypothesis"],
+            "task": "Design the experiment for the hypothesis: variants, primary and guardrail metrics, sample size / duration for 95% confidence, and the decision rule set in advance."
+          },
+          {
+            "id": "analyze",
+            "type": "agent",
+            "agent": "support-analytics-reporter",
+            "after": ["design"],
+            "task": "Analyse the experiment with the available data:\n{{input.data}}\n\nIf real results are missing, state exactly which data is needed and give the analysis plan instead of inventing numbers."
+          },
+          {
+            "id": "decide",
+            "type": "gate",
+            "agent": "product-sprint-prioritizer",
+            "after": ["analyze"],
+            "verdicts": ["SCALE", "ITERATE", "KILL"],
+            "task": "Decide on this experiment line using the pre-registered decision rule.",
+            "verdict_guide": "SCALE = a winner with sufficient evidence; roll it out. ITERATE = promising or inconclusive; run the next cycle with what was learned. KILL = evidence says this direction won't reach the goal."
+          }
+        ],
+        "outputs": { "result": "{{nodes.hypothesis.output}}\n\n{{nodes.design.output}}\n\n{{nodes.analyze.output}}\n\n{{nodes.decide.output}}" }
+      }
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.cycles.output}}",
+    "verdict": "{{nodes.cycles.verdict}}"
+  }
+}

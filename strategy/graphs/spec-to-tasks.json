@@ -1,0 +1,72 @@
+{
+  "slug": "spec-to-tasks",
+  "title": "Spec → Architecture → Task Plan",
+  "kind": "block",
+  "summary": "Turns a product spec into an architecture outline and an ordered, machine-readable task list in which every task names its developer and QA agent — the input a map/Dev↔QA fan-out needs.",
+  "pool": [
+    "engineering-frontend-developer",
+    "engineering-backend-architect",
+    "engineering-senior-developer",
+    "engineering-devops-automator",
+    "engineering-ai-engineer",
+    "engineering-mobile-app-builder",
+    "engineering-technical-writer",
+    "testing-evidence-collector",
+    "testing-api-tester",
+    "testing-performance-benchmarker",
+    "testing-test-results-analyzer",
+    "engineering-code-reviewer"
+  ],
+  "inputs": {
+    "spec": {
+      "description": "Product or feature specification",
+      "required": true
+    },
+    "max_tasks": {
+      "description": "Upper bound on tasks",
+      "default": "8"
+    }
+  },
+  "nodes": [
+    {
+      "id": "architecture",
+      "type": "agent",
+      "agent": "engineering-software-architect",
+      "task": "Design the architecture for this spec:\n\n{{input.spec}}\n\nCover components and their boundaries, data model, key interfaces/APIs, technology choices with one-line rationale, and the main risks. Keep it to what implementation needs."
+    },
+    {
+      "id": "plan",
+      "type": "agent",
+      "agent": "project-manager-senior",
+      "after": [
+        "architecture"
+      ],
+      "output": "json",
+      "task": "Break the spec and architecture into at most {{input.max_tasks}} implementation tasks, ordered so each task only depends on earlier ones. Each task must be completable and verifiable on its own.\n\nSpec:\n{{input.spec}}\n\nAssign each task a developer and a QA agent from this roster (use the slug exactly):\n- engineering-frontend-developer (UI) → QA testing-evidence-collector\n- engineering-backend-architect (API, database) → QA testing-api-tester\n- engineering-senior-developer (full-stack, complex logic) → QA testing-evidence-collector\n- engineering-devops-automator (CI/CD, infra) → QA testing-performance-benchmarker\n- engineering-ai-engineer (ML/LLM features) → QA testing-test-results-analyzer\n- engineering-mobile-app-builder (mobile) → QA testing-evidence-collector\n- engineering-technical-writer (docs) → QA engineering-code-reviewer",
+      "schema_hint": "Shape: [{\"id\": \"T1\", \"title\": \"...\", \"description\": \"...\", \"acceptance\": \"...\", \"developer\": \"<slug>\", \"qa\": \"<slug>\"}, ...]",
+      "mock": [
+        {
+          "id": "T1",
+          "title": "Data model and API",
+          "description": "Schema and CRUD endpoints",
+          "acceptance": "Endpoints pass API tests",
+          "developer": "engineering-backend-architect",
+          "qa": "testing-api-tester"
+        },
+        {
+          "id": "T2",
+          "title": "Main UI flow",
+          "description": "Primary screens wired to the API",
+          "acceptance": "Flow works end to end with screenshots",
+          "developer": "engineering-frontend-developer",
+          "qa": "testing-evidence-collector"
+        }
+      ]
+    }
+  ],
+  "outputs": {
+    "architecture": "{{nodes.architecture.output}}",
+    "tasks": "{{nodes.plan.json}}",
+    "result": "{{nodes.plan.output}}"
+  }
+}

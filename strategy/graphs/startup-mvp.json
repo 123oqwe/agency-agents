@@ -1,0 +1,72 @@
+{
+  "slug": "startup-mvp",
+  "title": "Startup MVP Team",
+  "kind": "team",
+  "summary": "Idea to launch-ready MVP: parallel market and user discovery, a product brief, the full Feature Delivery team as a sub-team, and — only if the reality gate says READY — a launch squad; otherwise a recovery plan.",
+  "inputs": {
+    "idea": { "description": "The product idea, target users, and any constraints", "required": true }
+  },
+  "nodes": [
+    {
+      "id": "market",
+      "type": "agent",
+      "agent": "product-trend-researcher",
+      "task": "Quick competitive and market scan for: {{input.idea}}\n\nTop competitors and their gaps, market timing, and the single sharpest positioning opportunity. One page, not a full report."
+    },
+    {
+      "id": "users",
+      "type": "agent",
+      "agent": "design-ux-researcher",
+      "task": "Define the target users for: {{input.idea}}\n\nTwo or three personas, their top jobs-to-be-done, and the critical user flow the MVP must nail."
+    },
+    {
+      "id": "brief",
+      "type": "agent",
+      "agent": "product-manager",
+      "after": ["market", "users"],
+      "task": "Write the MVP product spec: problem, target user, the smallest feature set that tests the core value hypothesis (with explicit non-goals), success metrics, and acceptance criteria per feature."
+    },
+    {
+      "id": "deliver",
+      "type": "graph",
+      "graph": "feature-delivery",
+      "after": ["brief"],
+      "inputs": { "spec": "{{nodes.brief.output}}", "max_tasks": "6" }
+    },
+    {
+      "id": "launch",
+      "type": "agent",
+      "agent": "marketing-growth-hacker",
+      "after": ["deliver"],
+      "when": { "node": "deliver", "verdict": "READY" },
+      "task": "Design the launch and first-30-days acquisition plan for this MVP: channels ranked by expected CAC, a referral/viral loop, activation metric, and the experiments to run in week one.\n\nProduct spec:\n{{nodes.brief.output}}"
+    },
+    {
+      "id": "announcement",
+      "type": "graph",
+      "graph": "review-loop",
+      "after": ["deliver"],
+      "when": { "node": "deliver", "verdict": "READY" },
+      "inputs": {
+        "brief": "A launch announcement (blog post plus three social posts) for this MVP:\n{{nodes.brief.output}}",
+        "author": "marketing-content-creator",
+        "reviewer": "design-brand-guardian"
+      }
+    },
+    {
+      "id": "recovery",
+      "type": "agent",
+      "agent": "project-management-studio-producer",
+      "after": ["deliver"],
+      "when": { "node": "deliver", "verdict": "READY", "negate": true },
+      "task": "The MVP did not pass the reality gate (verdict: {{nodes.deliver.verdict}}). Using the delivery summary, decide: cut scope, extend by one sprint, or pivot the approach. Give a concrete recovery plan with owners (agent roles) and a date-free sequence of steps."
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.deliver.output}}",
+    "verdict": "{{nodes.deliver.verdict}}",
+    "launch_plan": "{{nodes.launch.output}}",
+    "announcement": "{{nodes.announcement.output}}",
+    "recovery": "{{nodes.recovery.output}}"
+  }
+}

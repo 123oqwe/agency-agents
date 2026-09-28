@@ -1,0 +1,55 @@
+{
+  "slug": "dev-qa-loop",
+  "title": "Dev ↔ QA Loop",
+  "kind": "block",
+  "summary": "The NEXUS task loop: a developer implements one task, a QA agent tests it against the acceptance criteria, failures loop back with specific feedback (max 3 attempts), and exhausted or blocked tasks are escalated.",
+  "inputs": {
+    "task": { "description": "The task to implement", "required": true },
+    "acceptance": { "description": "Acceptance criteria QA checks against", "default": "The task works as described, is tested, and introduces no regressions." },
+    "context": { "description": "Specs, architecture, or constraints the developer needs", "default": "" },
+    "developer": { "type": "agent", "description": "Implementing agent", "default": "engineering-senior-developer" },
+    "qa": { "type": "agent", "description": "Verifying agent", "default": "testing-evidence-collector" }
+  },
+  "nodes": [
+    {
+      "id": "attempts",
+      "type": "loop",
+      "max_iterations": 3,
+      "until": { "node": "qa", "verdict": "PASS" },
+      "break": { "node": "qa", "verdict": "BLOCKED" },
+      "body": {
+        "nodes": [
+          {
+            "id": "implement",
+            "type": "agent",
+            "agent": "{{input.developer}}",
+            "task": "Implement this task completely.\n\nTask: {{input.task}}\n\nAcceptance criteria: {{input.acceptance}}\n\nContext:\n{{input.context}}\n\nIf QA feedback from a previous attempt is shown, fix exactly those issues — do not add scope. Finish with a short summary of what you changed (files, commands, how to verify)."
+          },
+          {
+            "id": "qa",
+            "type": "gate",
+            "agent": "{{input.qa}}",
+            "after": ["implement"],
+            "verdicts": ["PASS", "FAIL", "BLOCKED"],
+            "task": "Verify the developer's work on: {{input.task}}\n\nAcceptance criteria: {{input.acceptance}}\n\nCheck each criterion with evidence (test output, observed behaviour, file references). Default to FAIL unless every criterion is demonstrably met. On FAIL, give numbered, specific fix instructions.",
+            "verdict_guide": "PASS = every criterion demonstrably met. FAIL = fixable issues remain (list them). BLOCKED = cannot be completed by the developer (missing access, contradictory spec, external dependency)."
+          }
+        ],
+        "outputs": { "result": "{{nodes.implement.output}}" }
+      }
+    },
+    {
+      "id": "escalate",
+      "type": "agent",
+      "agent": "agents-orchestrator",
+      "after": ["attempts"],
+      "when": { "node": "attempts", "status": ["exhausted", "broken"] },
+      "task": "The task '{{input.task}}' did not pass QA (loop status: {{nodes.attempts.status}}, last verdict: {{nodes.attempts.verdict}}, after {{nodes.attempts.iterations}} attempt(s)). Write a NEXUS escalation report: failure history, root cause, and a recommended resolution (reassign, decompose, revise approach, accept with known limitations, or defer)."
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.attempts.output}}",
+    "verdict": "{{nodes.attempts.verdict}}",
+    "escalation": "{{nodes.escalate.output}}"
+  }
+}

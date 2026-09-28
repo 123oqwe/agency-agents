@@ -1,0 +1,68 @@
+{
+  "slug": "quality-gate",
+  "title": "Reality Check Gate",
+  "kind": "block",
+  "summary": "The NEXUS final gate: the Reality Checker assesses the integrated result against the spec (default NEEDS_WORK), a fixer addresses what it found, and the check repeats — at most 3 checks before the verdict stands.",
+  "inputs": {
+    "spec": {
+      "description": "What was supposed to be delivered",
+      "required": true
+    },
+    "deliverable": {
+      "description": "What was built (summaries, evidence)",
+      "required": true
+    },
+    "fixer": {
+      "type": "agent",
+      "description": "Agent that fixes gate findings",
+      "default": "engineering-senior-developer"
+    }
+  },
+  "nodes": [
+    {
+      "id": "cycle",
+      "type": "loop",
+      "max_iterations": 3,
+      "until": {
+        "node": "check",
+        "verdict": "READY"
+      },
+      "feedback": "Reality check:\n{{nodes.check.output}}\n\nFixes applied since:\n{{nodes.fix.output}}",
+      "body": {
+        "nodes": [
+          {
+            "id": "check",
+            "type": "gate",
+            "agent": "testing-reality-checker",
+            "verdicts": [
+              "READY",
+              "NEEDS_WORK"
+            ],
+            "task": "Assess production readiness of the integrated result against the spec. Default to NEEDS_WORK; READY requires evidence for every core requirement.\n\nSpec:\n{{input.spec}}\n\nDelivered:\n{{input.deliverable}}\n\nIf fixes from a previous round are shown in the feedback, verify them explicitly.",
+            "verdict_guide": "READY = every core requirement evidenced, no critical issues. NEEDS_WORK = list each gap as a numbered, fixable item."
+          },
+          {
+            "id": "fix",
+            "type": "agent",
+            "agent": "{{input.fixer}}",
+            "after": [
+              "check"
+            ],
+            "when": {
+              "node": "check",
+              "verdict": "NEEDS_WORK"
+            },
+            "task": "Fix every numbered gap from the reality check. Fix only those items. Report what you changed and how each gap is now closed, with evidence."
+          }
+        ],
+        "outputs": {
+          "result": "{{nodes.check.output}}\n\n{{nodes.fix.output}}"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.cycle.output}}",
+    "verdict": "{{nodes.cycle.verdict}}"
+  }
+}

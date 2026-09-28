@@ -1,0 +1,45 @@
+{
+  "slug": "review-loop",
+  "title": "Author ↔ Reviewer Loop",
+  "kind": "block",
+  "summary": "Draft, critique, revise: an author agent produces a deliverable and a reviewer agent approves it or sends it back with concrete revision notes, up to 3 rounds. Works for any non-code artifact — copy, docs, strategy, designs.",
+  "inputs": {
+    "brief": { "description": "What to produce", "required": true },
+    "standard": { "description": "What the reviewer holds the work to", "default": "Accurate, on-brief, clear, and ready to publish without further edits." },
+    "author": { "type": "agent", "description": "Producing agent", "default": "marketing-content-creator" },
+    "reviewer": { "type": "agent", "description": "Reviewing agent", "default": "design-brand-guardian" }
+  },
+  "nodes": [
+    {
+      "id": "rounds",
+      "type": "loop",
+      "max_iterations": 3,
+      "until": { "node": "review", "verdict": "APPROVED" },
+      "break": { "node": "review", "verdict": "REJECTED" },
+      "body": {
+        "nodes": [
+          {
+            "id": "draft",
+            "type": "agent",
+            "agent": "{{input.author}}",
+            "task": "Produce the complete deliverable for this brief:\n\n{{input.brief}}\n\nIf reviewer notes from a previous round are shown, revise to address every note and keep what was already approved. Output the full deliverable, not a diff."
+          },
+          {
+            "id": "review",
+            "type": "gate",
+            "agent": "{{input.reviewer}}",
+            "after": ["draft"],
+            "verdicts": ["APPROVED", "REVISE", "REJECTED"],
+            "task": "Review the draft against the brief ({{input.brief}}) and this standard: {{input.standard}}\n\nOn REVISE, give numbered, specific revision notes.",
+            "verdict_guide": "APPROVED = publishable as is. REVISE = fixable with the notes you gave. REJECTED = the approach is wrong; explain why."
+          }
+        ],
+        "outputs": { "result": "{{nodes.draft.output}}" }
+      }
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.rounds.output}}",
+    "verdict": "{{nodes.rounds.verdict}}"
+  }
+}

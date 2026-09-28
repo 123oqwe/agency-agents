@@ -1,0 +1,58 @@
+{
+  "slug": "pr-hardening",
+  "title": "PR Hardening Loop",
+  "kind": "team",
+  "summary": "Code review and security review run in parallel on the current change; a minimal-change engineer fixes whatever either finds, and both re-review until both pass (max 3 rounds). Best run with --backend claude-code inside the repository.",
+  "inputs": {
+    "change": { "description": "What the change is meant to do, and how to see it (e.g. 'git diff main...HEAD')", "required": true }
+  },
+  "nodes": [
+    {
+      "id": "rounds",
+      "type": "loop",
+      "max_iterations": 3,
+      "until": [ { "node": "review", "verdict": "PASS" }, { "node": "security", "verdict": "PASS" } ],
+      "feedback": "Code review:\n{{nodes.review.output}}\n\nSecurity review:\n{{nodes.security.output}}\n\nFixes applied:\n{{nodes.fix.output}}",
+      "body": {
+        "nodes": [
+          {
+            "id": "review",
+            "type": "gate",
+            "agent": "engineering-code-reviewer",
+            "verdicts": ["PASS", "FAIL"],
+            "task": "Review the change: {{input.change}}\n\nInspect the actual diff. Report 🔴 blockers, 🟡 suggestions and 💭 nits with file:line. If fixes from a previous round are shown, verify each one.",
+            "verdict_guide": "PASS = no blockers remain. FAIL = at least one blocker."
+          },
+          {
+            "id": "security",
+            "type": "gate",
+            "agent": "security-appsec-engineer",
+            "verdicts": ["PASS", "FAIL"],
+            "task": "Security-review the change: {{input.change}}\n\nInspect the actual diff for injection, authn/authz, secrets, unsafe deserialization, SSRF, dependency risk. Cite file:line and exploit scenario for each finding.",
+            "verdict_guide": "PASS = no exploitable findings. FAIL = at least one finding that must be fixed."
+          },
+          {
+            "id": "fix",
+            "type": "agent",
+            "agent": "engineering-minimal-change-engineer",
+            "after": ["review", "security"],
+            "when": { "any": [ { "node": "review", "verdict": "FAIL" }, { "node": "security", "verdict": "FAIL" } ] },
+            "task": "Fix every blocker and security finding above with the smallest correct diff. Do not touch nits or unrelated code. Run the relevant tests and report results."
+          }
+        ],
+        "outputs": { "result": "{{nodes.review.output}}\n\n{{nodes.security.output}}" }
+      }
+    },
+    {
+      "id": "report",
+      "type": "agent",
+      "agent": "engineering-technical-writer",
+      "after": ["rounds"],
+      "task": "Write the PR description section 'Review & hardening': what reviewers found, what was fixed, what remains (loop status: {{nodes.rounds.status}} after {{nodes.rounds.iterations}} round(s))."
+    }
+  ],
+  "outputs": {
+    "result": "{{nodes.report.output}}",
+    "verdict": "{{nodes.rounds.verdict}}"
+  }
+}
